@@ -5,7 +5,8 @@ class FSM {
      */
     constructor(config) {
         this.config = config;
-        this.prevState = null;
+        this.history = [];
+        this.canceledList = [];
         this.state = config.initial.toLowerCase();
     }
 
@@ -21,14 +22,20 @@ class FSM {
      * Goes to specified state.
      * @param state
      */
-    changeState(state) {
+    changeStateAlter(state) {
         for (let confState in this.config.states) {
             if (state.toLowerCase() === confState.toLowerCase()){
-                this.prevState = this.state;
+                this.history.push(this.state);
                 this.state = state.toLowerCase();
+                return;
             }
         }
         throw new Error('Wrong state value');
+    }
+
+    changeState(state){
+        this.canceledList = [];
+        this.changeStateAlter(state);
     }
 
 
@@ -39,7 +46,8 @@ class FSM {
     trigger(event) {
         for (let confTransition in this.config.states[this.getState()].transitions) {
             if (event.toLowerCase() === confTransition.toLowerCase()){
-                return this.changeState(this.config.states[this.getState()].transitions[confTransition].toLowerCase());
+                this.canceledList = [];
+                return this.changeStateAlter(this.config.states[this.getState()].transitions[confTransition].toLowerCase());
             }
         }
         throw new Error('Wrong transition value');
@@ -49,7 +57,8 @@ class FSM {
      * Resets FSM state to initial.
      */
     reset() {
-        return this.changeState(config.initial);
+        this.changeStateAlter(config.initial);
+        this.clearHistory();
     }
 
     /**
@@ -80,8 +89,11 @@ class FSM {
      * @returns {Boolean}
      */
     undo() {
-        if (this.prevState !== null) {
-            this.changeState(this.prevState);
+        if (this.history.length > 0) {
+            this.canceledList.push(this.state);
+            this.changeStateAlter(this.history[this.history.length-1]);
+            this.history.pop();
+            this.history.pop();
             return true;
         }
         return false;
@@ -93,14 +105,20 @@ class FSM {
      * @returns {Boolean}
      */
     redo() {
-        return this.undo();
+        if (this.canceledList.length > 0) {
+            this.changeStateAlter(this.canceledList[this.canceledList.length-1]);
+            this.canceledList.pop();
+            return true;
+        }
+        return false;
     }
 
     /**
      * Clears transition history
      */
     clearHistory() {
-        this.prevState = null;
+        this.history = [];
+        this.canceledList = [];
     }
 }
 
@@ -132,10 +150,7 @@ const config = {
     }
 };
 
-let student = new FSM(config);
-console.log(student.getStates('get_hungry'));
-// student.trigger('study');
-
 module.exports = FSM;
 
 /** @Created by Uladzimir Halushka **/
+/** @Implemented by Roman Makeychik **/
