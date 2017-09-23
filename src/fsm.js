@@ -5,9 +5,9 @@ class FSM {
      */
     constructor(config) {
         this.config = config;
-        this.history = [];
-        this.canceledList = [];
         this.state = config.initial.toLowerCase();
+        this.history = [];
+        this.canceledHistory = [];
     }
 
     /**
@@ -23,8 +23,8 @@ class FSM {
      * @param state
      */
     changeStateAlter(state) {
-        for (let confState in this.config.states) {
-            if (state.toLowerCase() === confState.toLowerCase()){
+        for (let configuredState in this.config.states) {
+            if (state.toLowerCase() === configuredState.toLowerCase()){
                 this.history.push(this.state);
                 this.state = state.toLowerCase();
                 return;
@@ -34,7 +34,7 @@ class FSM {
     }
 
     changeState(state){
-        this.canceledList = [];
+        this.canceledHistory = [];
         this.changeStateAlter(state);
     }
 
@@ -44,10 +44,10 @@ class FSM {
      * @param event
      */
     trigger(event) {
-        for (let confTransition in this.config.states[this.getState()].transitions) {
-            if (event.toLowerCase() === confTransition.toLowerCase()){
-                this.canceledList = [];
-                return this.changeStateAlter(this.config.states[this.getState()].transitions[confTransition].toLowerCase());
+        for (let configuredTransition in this.config.states[this.getState()].transitions) {
+            if (event.toLowerCase() === configuredTransition.toLowerCase()){
+                this.canceledHistory = [];
+                return this.changeStateAlter(this.config.states[this.getState()].transitions[configuredTransition].toLowerCase());
             }
         }
         throw new Error('Wrong transition value');
@@ -57,7 +57,7 @@ class FSM {
      * Resets FSM state to initial.
      */
     reset() {
-        this.changeStateAlter(config.initial);
+        this.changeStateAlter(this.config.initial);
         this.clearHistory();
     }
 
@@ -90,7 +90,7 @@ class FSM {
      */
     undo() {
         if (this.history.length > 0) {
-            this.canceledList.push(this.state);
+            this.canceledHistory.push(this.state);
             this.changeStateAlter(this.history[this.history.length-1]);
             this.history.pop();
             this.history.pop();
@@ -105,9 +105,9 @@ class FSM {
      * @returns {Boolean}
      */
     redo() {
-        if (this.canceledList.length > 0) {
-            this.changeStateAlter(this.canceledList[this.canceledList.length-1]);
-            this.canceledList.pop();
+        if (this.canceledHistory.length > 0) {
+            this.changeStateAlter(this.canceledHistory[this.canceledHistory.length-1]);
+            this.canceledHistory.pop();
             return true;
         }
         return false;
@@ -118,37 +118,9 @@ class FSM {
      */
     clearHistory() {
         this.history = [];
-        this.canceledList = [];
+        this.canceledHistory = [];
     }
 }
-
-const config = {
-    initial: 'normal',
-    states: {
-        normal: {
-            transitions: {
-                study: 'busy',
-            }
-        },
-        busy: {
-            transitions: {
-                get_tired: 'sleeping',
-                get_hungry: 'hungry'
-            }
-        },
-        hungry: {
-            transitions: {
-                eat: 'normal'
-            }
-        },
-        sleeping: {
-            transitions: {
-                get_hungry: 'hungry',
-                get_up: 'normal'
-            }
-        },
-    }
-};
 
 module.exports = FSM;
 
